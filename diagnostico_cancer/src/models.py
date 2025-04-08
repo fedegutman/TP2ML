@@ -69,7 +69,7 @@ class LinearRegression:
         return eq
     
 class BinaryClassifier:
-    def __init__(self, dataset, target_name='y', ridge_lambda=0, fit=True):
+    def __init__(self, dataset, target_name='y', ridge_lambda=0, threshold=0.5, fit=True):
         assert isinstance(dataset, pd.DataFrame)  # Ensure the dataset is a pandas DataFrame
 
         # Separate features and target
@@ -85,6 +85,7 @@ class BinaryClassifier:
         self.w = np.zeros(len(self.features))  # Initialize weights to zeros
         self.w_trace = [self.w.copy()]  # Track weight updates
         self.ridge_lambda = ridge_lambda
+        self.threshold = threshold
 
         if fit:
             self.fit()
@@ -140,7 +141,7 @@ class BinaryClassifier:
         X_new = np.column_stack((np.ones(X_new.shape[0]), X_new))
         return self.sigmoid(X_new @ self.w)
 
-    def predict(self, X_new, threshold=0.5):
+    def predict(self, X_new):
         """Predict binary labels for new data."""
         probabilities = self.predict_proba(X_new)
-        return (probabilities >= threshold).astype(int)
+        return (probabilities >= self.threshold).astype(int)
