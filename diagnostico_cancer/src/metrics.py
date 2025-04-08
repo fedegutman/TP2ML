@@ -118,6 +118,9 @@ def precision_recall_curve(threshold_metrics:dict[float:dict[str:int]]):
         prec.append(precision(threshold_metrics[threshold]))
         rec.append(recall(threshold_metrics[threshold]))
     plt.plot(rec, prec)
+    plt.title('PR CURVE')
+    plt.xlabel('Recall')
+    plt.ylabel('Precision')
     plt.show()
     
     return prec, rec
@@ -130,17 +133,20 @@ def roc_curve(threshold_metrics:dict[float:dict[str:int]]):
         tp_rate.append(true_positive_rate(threshold_metrics[threshold]))
         fp_rate.append(false_positive_rate(threshold_metrics[threshold]))
     plt.plot(fp_rate, tp_rate)
+    plt.title('ROC CURVE')
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
     plt.show()
 
     return tp_rate, fp_rate
 
 def auc_roc(tp_rate, fp_rate):
-    auc = np.trapz(fp_rate, tp_rate)
-    return auc
+    auc = np.trapz(y=tp_rate, x=fp_rate)
+    return abs(auc)
 
 def auc_pr(prec, rec):
-    auc = np.trapz(rec, prec)
-    return auc
+    auc = np.trapz(y=prec, x=rec)
+    return abs(auc)
 
 def get_thresholds_results(threshold_values:list[float], train_df, valid_df, target_name):
     threshold_metrics = {}
