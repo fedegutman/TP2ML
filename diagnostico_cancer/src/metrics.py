@@ -102,6 +102,14 @@ def fscore(results:dict[str:int]):
     score = (2*results['TP'])/(2*results['TP'] + results['FP'] + results['FN'])
     return score
 
+def true_positive_rate(results:dict[str:int]):
+    tp_rate = results['TP']/(results['TP'] + results['FN'])
+    return tp_rate
+
+def false_positive_rate(results:dict[str:int]):
+    fp_rate = results['FP']/(results['FP'] + results['TN'])
+    return fp_rate
+
 def precision_recall_curve(threshold_metrics:dict[float:dict[str:int]]):
     prec = []
     rec = []
@@ -111,17 +119,34 @@ def precision_recall_curve(threshold_metrics:dict[float:dict[str:int]]):
         rec.append(recall(threshold_metrics[threshold]))
     plt.plot(rec, prec)
     plt.show()
+    
+    return prec, rec
 
-# def auc_roc_curve(results:dict[str:int]):
-#     return
+def roc_curve(threshold_metrics:dict[float:dict[str:int]]):
+    tp_rate = []
+    fp_rate = []
 
-# def auc_pr_curve(results:dict[str:int]):
-#     return
+    for threshold in threshold_metrics.keys():
+        tp_rate.append(true_positive_rate(threshold_metrics[threshold]))
+        fp_rate.append(false_positive_rate(threshold_metrics[threshold]))
+    plt.plot(fp_rate, tp_rate)
+    plt.show()
+
+    return tp_rate, fp_rate
+
+def auc_roc(tp_rate, fp_rate):
+    auc = np.trapz(fp_rate, tp_rate)
+    return auc
+
+def auc_pr(prec, rec):
+    auc = np.trapz(rec, prec)
+    return auc
 
 def get_thresholds_results(threshold_values:list[float], train_df, valid_df, target_name):
     threshold_metrics = {}
+    model = BinaryClassifier(train_df, target_name=target_name)
     for threshold in threshold_values:
-        model = BinaryClassifier(train_df, target_name=target_name, ridge_lambda=0, threshold=threshold, fit=True)
+        model.change_threshold(threshold)
 
         valid_features = valid_df.drop(columns=[target_name]).values
         valid_predictions = model.predict(valid_features)

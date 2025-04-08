@@ -136,6 +136,9 @@ class BinaryClassifier:
         params = self.gradient_descent(self.w)
         self.w = params
 
+    def change_threshold(self, threshold=0.5):
+        self.threshold = threshold
+
     def predict_proba(self, X_new):
         """Predict probabilities for new data."""
         X_new = np.column_stack((np.ones(X_new.shape[0]), X_new))
