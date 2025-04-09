@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# SACAR COMENTARIOS CLASES Y EMPROLIJAR
+
 class LinearRegression:
     def __init__(self, X:pd.DataFrame, y:pd.DataFrame, method='gradient descent'):
         '''
@@ -148,3 +150,19 @@ class BinaryClassifier:
         """Predict binary labels for new data."""
         probabilities = self.predict_proba(X_new)
         return (probabilities >= self.threshold).astype(int)
+    
+class LDA:
+    def __init__(self):
+        return
+
+class MultiClassRegression: # generalizar binary para multiclase multiclass:bool=False
+    def __init__(self):
+        return
+    
+class DecisionTree:
+    def __init__(self):
+        return
+    
+class RandomForest:
+    def __init__(self):
+        return
