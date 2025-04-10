@@ -272,3 +272,10 @@ def handle_missing_test_values(test_df:pd.DataFrame, train_df:pd.DataFrame, nume
     test_df = test_numeric_KNN(train_df, test_df, numeric_cols, k)
     test_df = test_categorical_KNN(train_df, test_df, numeric_cols, categorical_cols, k)
     return test_df
+
+def replace_unwanted_test_values(dataset:pd.DataFrame, col_range:dict[str:tuple], cat_columns:list[str], keywords:list[str]):
+    
+    dataset = set_range(dataset, col_range)
+    dataset = replace_missing_values(dataset, cat_columns, keywords)
+    
+    return dataset

@@ -36,17 +36,3 @@ def smote_oversampling(dataset:pd.DataFrame):
 def cost_reweighting(dataset:pd.DataFrame):
     return
 
-original_df = pd.DataFrame({
-    'horas_estudiadas': [5, 7, 4, 2, 9, 8, 10, 5], 
-    'promedio': [5, 5, 6, 8, 7, 2, 1, 6], 
-    'recurso': [1, 1, 1, 0, 0, 1, 1, 0]
-})
-
-print(f'ORIGINAL\n{original_df}\n')
-
-undersampling_df = undersampling(original_df, target_name='recurso')
-print(f'UNDERSAMPLING\n{undersampling_df}\n')
-
-duplicated_df = duplication_oversampling(original_df, target_name='recurso')
-print(f'DUPLICATION\n{duplicated_df}\n')
-
