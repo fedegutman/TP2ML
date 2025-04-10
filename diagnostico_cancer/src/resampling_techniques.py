@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 
-def undersampling(dataset:pd.DataFrame, target_name:str) -> pd.DataFrame:
+def undersampling(df:pd.DataFrame, target_name:str) -> pd.DataFrame:
+    dataset = df.copy()
     class_values = dataset[target_name].value_counts()
     bigger_class = class_values.idxmax()
     smaller_class_size = class_values.min()
@@ -15,7 +16,8 @@ def undersampling(dataset:pd.DataFrame, target_name:str) -> pd.DataFrame:
     undersampled_dataset = undersampled_dataset.sample(frac=1, random_state=42).reset_index(drop=True)
     return undersampled_dataset
 
-def duplication_oversampling(dataset:pd.DataFrame, target_name:str) -> pd.DataFrame:
+def duplication_oversampling(df:pd.DataFrame, target_name:str) -> pd.DataFrame:
+    dataset = df.copy()
     class_values = dataset[target_name].value_counts()
     minority_class = class_values.idxmin()
 
@@ -26,7 +28,6 @@ def duplication_oversampling(dataset:pd.DataFrame, target_name:str) -> pd.DataFr
     duplicated_minority = minority_df.sample(n=n_duplication, replace=True, random_state=42)
 
     balanced_dataset = pd.concat([dataset, duplicated_minority], ignore_index=True).sample(frac=1, random_state=42)
-
     return balanced_dataset
 
 def smote_oversampling(dataset:pd.DataFrame):

@@ -165,3 +165,10 @@ def get_thresholds_results(threshold_values:list[float], train_df, valid_df, tar
         threshold_metrics[threshold] = extract_results(results) 
 
     return threshold_metrics
+
+def print_metrics(results):
+    confusion_matrix(results)
+    print(f'MODEL ACCURACY: {accuracy(results)}')
+    print(f'MODEL PRECISION: {precision(results)}')
+    print(f'MODEL RECALL: {recall(results)}')
+    print(f'MODEL F-SCORE: {fscore(results)}')

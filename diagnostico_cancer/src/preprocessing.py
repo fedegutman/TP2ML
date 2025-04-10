@@ -2,39 +2,155 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import tqdm as tqdm
 
-def KNN(dataset, numeric_cols, k=5):
-    df_numeric = dataset[numeric_cols].copy()
-    df_filled = df_numeric.copy()
+# EMPROLIJAR TODAS LAS FUNCIONES
+    
+def categorical_KNN(dataset: pd.DataFrame, numeric_cols: list[str], categorical_cols: list[str], k=5):
+    df = dataset.copy()
+    df_numeric = df[numeric_cols]
 
-    # Escalamos los datos (z-score)
     means = df_numeric.mean()
     stds = df_numeric.std()
     df_scaled = (df_numeric - means) / stds
 
-    # Iteramos columna por columna
+    for col in categorical_cols:
+        missing_idx = df[df[col].isna()].index
+
+        for index in missing_idx:
+            row = df_scaled.loc[index]
+
+            # Candidatos: filas donde col no sea NaN
+            candidates = df_scaled.loc[df[col].notna()]
+            distances = ((candidates - row) ** 2).sum(axis=1) ** 0.5
+
+            neighbors_idx = distances.nsmallest(k).index
+            neighbor_values = df.loc[neighbors_idx, col].dropna()
+
+            if not neighbor_values.empty:
+                mode = neighbor_values.value_counts().idxmax()
+                df.at[index, col] = mode
+
+    return df
+
+def numeric_KNN(dataset: pd.DataFrame, numeric_cols: list[str], k=5):
+    df_numeric = dataset[numeric_cols].copy()
+    new_df = df_numeric.copy()
+
+    means = df_numeric.mean()
+    stds = df_numeric.std()
+
     for col in numeric_cols:
-        # Filas donde hay NaN en esta columna
-        missing_idx = df_scaled[df_scaled[col].isna()].index
+        # Guardar los NaNs originales del resto de las columnas
+        other_cols = [c for c in numeric_cols if c != col]
+        original_nans = df_numeric[other_cols].isna()
 
-        for idx in missing_idx:
-            row = df_scaled.loc[idx]
+        # Reemplazar NaNs en las otras columnas con la media
+        temp_df = df_numeric.copy()
+        for c in other_cols:
+            temp_df[c] = temp_df[c].fillna(means[c])
 
-            # Usamos solo las columnas que no tienen NaNs en esta fila (para calcular la distancia)
-            available_features = row.dropna().index
-            other_rows = df_scaled.loc[df_scaled[col].notna(), available_features]
+        df_scaled = (temp_df - means) / stds
 
-            # Calculamos distancias euclidianas a otras filas sin NaN en esta columna
-            distances = ((other_rows - row[available_features]) ** 2).sum(axis=1).pow(0.5)
+        missing_idx = df_numeric[df_numeric[col].isna()].index
 
-            # Tomamos los k vecinos más cercanos
-            nearest = distances.nsmallest(k).index
+        for index in missing_idx:
+            row = df_scaled.loc[index]
+            features = row[other_cols]
 
-            # Imputamos con el promedio (en la columna original sin escalar)
-            imputed_value = df_numeric.loc[nearest, col].mean()
-            df_filled.at[idx, col] = imputed_value
+            candidates = df_scaled.loc[df_numeric[col].notna(), other_cols]
 
-    return df_filled
+            distances = ((candidates - features) ** 2).sum(axis=1) ** 0.5
+
+            neighbors = distances.nsmallest(k).index
+            new_value = df_numeric.loc[neighbors, col].mean()
+            new_df.at[index, col] = new_value
+
+        for c in other_cols:
+            df_numeric.loc[original_nans[c], c] = np.nan
+
+    result = dataset.copy()
+    result[numeric_cols] = new_df
+
+    return result
+    
+def test_categorical_KNN(train_dataset:pd.DataFrame, test_dataset:pd.DataFrame, numeric_cols: list[str], categorical_cols: list[str], k=5):
+    train_df = train_dataset.copy()
+    test_df = test_dataset.copy()
+
+    # Escalar los numéricos usando estadísticas del train
+    means = train_df[numeric_cols].mean()
+    stds = train_df[numeric_cols].std()
+
+    train_scaled = (train_df[numeric_cols] - means) / stds
+    test_scaled = (test_df[numeric_cols] - means) / stds  # usar las mismas estadísticas
+
+    for col in categorical_cols:
+        missing_idx = test_df[test_df[col].isna()].index
+
+        # Candidatos: train donde col no sea NaN
+        print(train_scaled)
+        candidates = train_scaled[train_df[col].notna()]
+        print(candidates)
+        candidate_values = train_df[train_df[col].notna()][col]
+
+        for index in missing_idx:
+            row = test_scaled.loc[index]
+
+            # Calcular distancias euclidianas
+            distances = ((candidates - row) ** 2).sum(axis=1) ** 0.5
+
+            neighbors_idx = distances.nsmallest(k).index
+            neighbor_values = candidate_values.loc[neighbors_idx]
+
+            if not neighbor_values.empty:
+                mode = neighbor_values.value_counts().idxmax()
+                test_df.at[index, col] = mode
+
+    return test_df
+
+def test_numeric_KNN(train_dataset: pd.DataFrame, test_dataset: pd.DataFrame, numeric_cols: list[str], k: int = 5):
+
+    train_df = train_dataset[numeric_cols].copy()
+    test_df = test_dataset[numeric_cols].copy()
+    new_test_df = test_df.copy()
+
+    means = train_df.mean()
+    stds = train_df.std()
+
+    for col in numeric_cols:
+        other_cols = [c for c in numeric_cols if c != col]
+
+        # Reemplazar NaNs en otras columnas por la media del TRAIN (en ambos datasets)
+        train_temp = train_df[other_cols].fillna(means[other_cols])
+        test_temp = test_df[other_cols].fillna(means[other_cols])
+
+        # Escalar con media y std del TRAIN
+        train_scaled = (train_temp - means[other_cols]) / stds[other_cols]
+        test_scaled = (test_temp - means[other_cols]) / stds[other_cols]
+
+        missing_idx = test_df[test_df[col].isna()].index
+
+        for index in missing_idx:
+            row = test_scaled.loc[index]
+
+            # Candidatos: filas del train donde la columna a imputar NO sea NaN
+            candidates = train_scaled.loc[train_df[col].notna()]
+            candidate_values = train_df.loc[train_df[col].notna(), col]
+
+            # Calcular distancias
+            distances = ((candidates - row) ** 2).sum(axis=1) ** 0.5
+
+            neighbors = distances.nsmallest(k).index
+            new_value = candidate_values.loc[neighbors].mean()
+
+            new_test_df.at[index, col] = new_value
+
+    # Combinar columnas imputadas con el resto del test
+    result = test_dataset.copy()
+    result[numeric_cols] = new_test_df
+
+    return result
 
 def corr_matrix(dataset:pd.DataFrame, categorical_columns=list[str]):
     encoded_dataset = dataset.copy()
@@ -97,8 +213,14 @@ def normalize(dataset:pd.DataFrame, columns:list[str], stats=None):
     
     return dataset, stats
 
-def handle_missing_values():
+def standarize():
     return
+
+def handle_missing_values(dataset: pd.DataFrame, numeric_cols: list[str], categorical_cols: list[str], k=5):
+    df = dataset.copy()
+    df = numeric_KNN(df, numeric_cols, k)
+    df = categorical_KNN(df, numeric_cols, categorical_cols, k)
+    return df
 
 def set_range(dataset:pd.DataFrame, range:dict):
     columns = range.keys()
@@ -124,34 +246,29 @@ def replace_missing_values(dataset:pd.DataFrame, columns:list[str], keywords:lis
         dataset.loc[dataset[col].isin(keywords), col] = np.nan    
     return dataset
 
-def knn_impute_celltype(df, numeric_cols, k=5):
-    df_filled = df.copy()
-
-    # Separate known and missing CellType
-    known = df[df['CellType'].notna()]
-    missing = df[df['CellType'].isna()]
-
-    for idx in missing.index:
-        # Row with missing CellType
-        row = df.loc[idx, numeric_cols].values.astype(float)
-
-        # Compute Euclidean distances to all known rows
-        known_values = known[numeric_cols].values.astype(float)
-        distances = np.linalg.norm(known_values - row, axis=1)
-
-        # Get k nearest neighbors
-        nearest_indices = distances.argsort()[:k]
-        neighbor_celltypes = known.iloc[nearest_indices]['CellType']
-
-        # Compute mode manually
-        mode_value = neighbor_celltypes.value_counts().index[0]
-
-        # Fill in the missing value
-        df_filled.at[idx, 'CellType'] = mode_value
-
-    return df_filled
+def replace_nans(dataset:pd.DataFrame, numeric_cols:list[str]):
+    df = dataset.copy()
+    for col in numeric_cols:
+        mean = df[col].mean()
+        df[col].fillna(mean)
+    return df
 
 def normalize_train_test(train:pd.DataFrame, test:pd.DataFrame, columns:list[str]):
     normalized_train, stats = normalize(train, columns)
     normalized_test, _ = normalize(test, columns, stats)
     return normalized_train, normalized_test
+
+def replace_unwanted_values(dataset:pd.DataFrame, col_range:dict[str:tuple], cat_columns:list[str], keywords:list[str]):
+    for column in list(col_range.keys()):
+        dataset = replace_outliers(dataset, column)
+    
+    dataset = set_range(dataset, col_range)
+    dataset = replace_missing_values(dataset, cat_columns, keywords)
+    
+    return dataset
+
+def handle_missing_test_values(test_df:pd.DataFrame, train_df:pd.DataFrame, numeric_cols:list[str], categorical_cols:list[str], k=5):
+    test_df = test_df.copy()
+    test_df = test_numeric_KNN(train_df, test_df, numeric_cols, k)
+    test_df = test_categorical_KNN(train_df, test_df, numeric_cols, categorical_cols, k)
+    return test_df
